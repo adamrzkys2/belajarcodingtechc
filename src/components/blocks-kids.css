@@ -1,0 +1,281 @@
+/* ---------- Modern full-width Pictoblox styles ---------- */
+
+/* base layout: full width container */
+.blocks-kids-root.full-width {
+  width: 100%;
+  padding: 28px 40px;            /* outer page padding */
+  box-sizing: border-box;
+  font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #222;
+  background: linear-gradient(180deg,#f6fbff 0%, #ffffff 40%);
+}
+
+/* Page header */
+.blocks-kids-root .blocks-kids-root > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.blocks-kids-root h2 {
+  margin: 0;
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.2px;
+  color: #0f1724;
+}
+
+/* Action buttons */
+.blocks-kids-root .btn {
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 0;
+  background: linear-gradient(90deg,#4f46e5,#06b6d4);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(12, 24, 60, 0.08);
+  cursor: pointer;
+}
+.blocks-kids-root .btn.ghost {
+  background: transparent;
+  color: #374151;
+  box-shadow: none;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+.blocks-kids-root .btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* layout: full-width blocks with wide central column */
+.pictoblox-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;  /* palette + flexible main column */
+  gap: 22px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* left palette card */
+.pallet-panel {
+  width: 100%;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 12px 30px rgba(15, 30, 60, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.03);
+}
+.panel-title {
+  font-weight: 800;
+  font-size: 16px;
+  color: #091427;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* palette tiles: big, rounded, modern */
+.palette-list { display:flex; flex-direction:column; gap:12px; }
+.palette-tile {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 18px;
+  border-radius: 14px;
+  color:#fff;
+  font-weight:800;
+  cursor:grab;
+  user-select:none;
+  transition: transform .12s ease, box-shadow .12s ease;
+  box-shadow: 0 10px 22px rgba(20,30,60,0.06);
+}
+.palette-tile:active { cursor:grabbing; transform:scale(.995); }
+.tile-label { font-size:16px; line-height:1; }
+.tile-icon {
+  font-size:18px;
+  width:40px; height:40px;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(255,255,255,0.12);
+  box-shadow: inset 0 -4px 8px rgba(255,255,255,0.06);
+}
+
+/* main right column contains arena + program */
+main { width:100%; display:flex; flex-direction:column; gap:16px; }
+
+/* arena card uses full width of right column, modern look */
+.arena-panel {
+  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 12px 30px rgba(12, 24, 60, 0.06);
+  border: 1px solid rgba(12, 24, 40, 0.04);
+}
+
+/* grid wrapper - responsive and scalable */
+.grid-wrap {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  background: linear-gradient(180deg,#f8fbff,#ffffff);
+  padding: 14px;
+  border-radius: 12px;
+  justify-content: start;
+}
+
+/* cell style: big rounded cards with inner padding */
+.grid-cell {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  min-width: 0;
+  min-height: 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:visible;
+  transition: transform .12s ease, box-shadow .12s ease;
+  cursor:pointer;
+}
+.grid-cell:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(12,24,60,0.06); }
+
+.grid-cell.robot-start {
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.08);
+  border: 1px dashed rgba(59,130,246,0.18);
+}
+
+/* cell tile inside grid - larger and spaced */
+.cell-tile {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 800;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  box-shadow: 0 10px 20px rgba(20,30,60,0.06);
+}
+.cell-icon { font-size:18px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; }
+.cell-label { font-size:14px; opacity:0.98; }
+
+/* robot style: slightly larger with gentle shadow */
+#pictorobot {
+  cursor:grab;
+  filter: drop-shadow(0 8px 18px rgba(12,24,60,0.08));
+  width:56px; height:56px;
+  transition: left .18s ease, top .18s ease, transform .18s ease;
+}
+#pictorobot:active { cursor:grabbing; transform: scale(.98); }
+
+/* Program Kamu panel modernized */
+.program-panel {
+  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid rgba(15,23,42,0.04);
+  box-shadow: 0 8px 20px rgba(12,24,40,0.04);
+}
+.program-list { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+.program-tile {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px;
+  border-radius:12px;
+  color:#fff;
+  box-shadow: 0 8px 18px rgba(12,24,40,0.05);
+}
+.program-left { display:flex; align-items:center; gap:12px; }
+.step-number {
+  width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,0.15);
+  display:flex; align-items:center; justify-content:center; font-weight:800;
+  font-size:14px; color:#fff;
+}
+.program-label { font-weight:800; font-size:15px; color:#fff; }
+.program-remove {
+  border:0; background: rgba(255,255,255,0.14); color:#fff; border-radius:8px; padding:6px 8px;
+  cursor:pointer; font-weight:800;
+}
+
+/* small controls */
+.clear-link { background:transparent; border:0; color:#ef4444; font-weight:700; cursor:pointer; }
+
+/* Commands log stylistic */
+.cmdList {
+  margin-top: 8px;
+  max-height: 160px;
+  overflow:auto;
+  border-radius:10px;
+  padding:10px;
+  background: linear-gradient(180deg,#fbfbfd,#ffffff);
+  border:1px solid rgba(15,23,42,0.03);
+}
+.cmdItem { padding:8px 10px; border-radius:8px; margin-bottom:8px; background:#fff; box-shadow:0 6px 14px rgba(12,24,40,0.03); font-size:13px; }
+
+/* Responsive: when narrow, stack palette above main */
+@media (max-width: 1100px) {
+  .pictoblox-layout { grid-template-columns: 100%; grid-auto-rows: auto; gap:16px; padding-bottom:10px; }
+  .pallet-panel { order: 1; width:100%; }
+  main { order: 2; width:100%; }
+  .grid-wrap { justify-content:center; }
+  /* shrink grid cells for smaller screens */
+  .grid-wrap { gap: 10px; padding: 10px; }
+  .grid-cell { border-radius:10px; }
+  #pictorobot { width:48px; height:48px; }
+}
+
+/* quick helpers to make palette tile gradients look nicer when defined inline in JSX */
+.palette-tile[style] { background-size: 200% 200%; }
+/* =======================
+   HEADER WITH LOGO
+   ======================= */
+
+.playground-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: linear-gradient(90deg, #ffffff 0%, #f8fbff 100%);
+  border-radius: 16px;
+  padding: 18px 24px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  margin-bottom: 20px;
+}
+
+.logo-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tiny-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+
+.logo-title h1 {
+  margin: 0;
+  font-weight: 800;
+  font-size: 28px;
+  color: #0f172a;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
