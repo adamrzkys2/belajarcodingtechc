@@ -363,12 +363,29 @@ export default function BlocksKids() {
                   }}
                   title="Drag untuk mengubah posisi awal robot"
                 >
-                  <svg viewBox="0 0 24 24" width="48" height="48">
-                    <rect x="2" y="4" width="20" height="16" rx="6" fill="#6c5ce7" />
-                    <circle cx="8.5" cy="12" r="2" fill="#fff" />
-                    <circle cx="15.5" cy="12" r="2" fill="#fff" />
-                    <rect x="10.5" y="15" width="3" height="1.6" rx="0.6" fill="#fff" />
-                  </svg>
+<svg viewBox="0 0 64 64" width="48" height="48">
+  {/* Robot body */}
+  <rect x="10" y="18" width="44" height="30" rx="6" fill="#4f46e5" />
+  
+  {/* Antenna */}
+  <line x1="32" y1="10" x2="32" y2="18" stroke="#4f46e5" strokeWidth="2" />
+  <circle cx="32" cy="8" r="3" fill="#22d3ee" />
+  
+  {/* Eyes */}
+  <circle cx="23" cy="32" r="4" fill="#fff" />
+  <circle cx="41" cy="32" r="4" fill="#fff" />
+  
+  {/* Mouth */}
+  <rect x="25" y="40" width="14" height="3" rx="1" fill="#fff" />
+  
+  {/* Arms */}
+  <rect x="4" y="24" width="6" height="18" rx="2" fill="#4f46e5" />
+  <rect x="54" y="24" width="6" height="18" rx="2" fill="#4f46e5" />
+  
+  {/* Wheels */}
+  <circle cx="22" cy="50" r="3" fill="#1e293b" />
+  <circle cx="42" cy="50" r="3" fill="#1e293b" />
+</svg>
                 </div>
               </div>
 
