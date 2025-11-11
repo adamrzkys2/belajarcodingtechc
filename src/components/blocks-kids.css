@@ -88,6 +88,12 @@
   color:#fff;
 }
 .program-label { font-weight:700; color:#fff; }
+/* make the grid container the positioning context for the robot */
+.grid-wrap {
+  position: relative;    /* ← important */
+  display: grid;
+  box-sizing: border-box;
+}
 
 /* program remove button (small) */
 .program-remove {
