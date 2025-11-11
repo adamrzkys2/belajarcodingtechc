@@ -9,6 +9,49 @@
   color: #222;
   background: linear-gradient(180deg,#f6fbff 0%, #ffffff 40%);
 }
+/* --- BUTTONS --- */
+.btn {
+  background: #4f46e5;
+  color: white;
+  font-weight: 600;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px; /* square edges */
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-left: 6px;
+  font-size: 15px;
+}
+
+.btn:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn.ghost {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.btn.ghost:hover {
+  background: #e5e7eb;
+}
+
+/* Optional: consistent small buttons in header */
+.header-actions .btn {
+  min-width: 90px;
+  height: 38px;
+}
 
 /* Page header */
 .blocks-kids-root .blocks-kids-root > div:first-child {
