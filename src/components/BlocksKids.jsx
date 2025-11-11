@@ -1,13 +1,11 @@
+// src/components/BlocksKids.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./blocks-kids.css";
 
 /**
  * BlocksKids — updated:
- * - square full-width header buttons
- * - repeat block (simple scratch-like repeat previous command)
- * - reorder program steps by drag/drop
- * - click program tile to edit (repeat count)
- * - speed slider
+ * - palette tiles: click (or Enter/Space) to add to program (no dragging)
+ * - other features retained: square buttons, repeat block, reorder program, speed slider, robot dragging
  */
 
 const BLOCKLY_UMD_URL = "https://unpkg.com/blockly/blockly.min.js";
@@ -75,19 +73,14 @@ export default function BlocksKids() {
   }
 
   function appendToProgram(cmd) {
-    setProgram((p) => [...p, cmd]);
+    // store a shallow copy so repeated references don't mutate unexpectedly
+    setProgram((p) => [...p, { ...cmd }]);
   }
   function removeProgramIndex(i) {
     setProgram((p) => p.filter((_, idx) => idx !== i));
   }
   function clearProgram() {
     setProgram([]);
-  }
-
-  // DRAG handlers for palette (drag source)
-  function onPaletteDragStart(e, cmd) {
-    e.dataTransfer.setData("application/x-pictoblox-cmd", JSON.stringify(cmd));
-    try { e.dataTransfer.effectAllowed = "copy"; } catch {}
   }
 
   // DRAG handlers for robot (dragging robot to change start cell)
@@ -123,13 +116,14 @@ export default function BlocksKids() {
     });
   }
 
-  // PROGRAM area: accept drops from palette to append program
+  // PROGRAM area: accept drops from palette to append program (we keep drop for program reorder/dragging)
   function onProgramDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   }
   function onProgramDrop(e) {
     e.preventDefault();
+    // If you previously used dragging from palette, we kept this to avoid errors.
     const raw = e.dataTransfer.getData("application/x-pictoblox-cmd");
     if (raw) {
       try {
@@ -159,7 +153,6 @@ export default function BlocksKids() {
     setProgram(prev => {
       const next = prev.slice();
       const [item] = next.splice(srcIdx, 1);
-      // if dropping onto same spot, just insert
       const insertAt = srcIdx < targetIdx ? targetIdx - 1 : targetIdx;
       next.splice(insertAt, 0, item);
       return next;
@@ -232,7 +225,7 @@ export default function BlocksKids() {
           if (stopFlagRef.current) break;
           setLog(l => [...l, `  ↳ ${prevCmd.type}${prevCmd.value ? " " + prevCmd.value : ""}`]);
           await executeSingleCmd(prevCmd, () => {
-            posIndex = getPosIndex(); // closure uses outer
+            posIndex = getPosIndex();
           }, speedMsParam);
         }
         continue;
@@ -346,6 +339,14 @@ export default function BlocksKids() {
     el.style.top = `${p.top + (gridSize - 48) / 2}px`;
   }, [robotCell]);
 
+  // handle keyboard add (Enter / Space) for accessible palette tiles
+  function onPaletteKeyDown(e, cmd) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      appendToProgram(cmd);
+    }
+  }
+
   return (
     <section className="blocks-fullwrap">
       <div className="blocks-kids-root pictoblox-mode full-width">
@@ -388,9 +389,11 @@ export default function BlocksKids() {
                 <div
                   key={p.type + i}
                   className="palette-tile square"
-                  draggable
-                  onDragStart={(e) => onPaletteDragStart(e, p)}
-                  title={p.label}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => appendToProgram(p)}
+                  onKeyDown={(e) => onPaletteKeyDown(e, p)}
+                  title={`Tambah: ${p.label}`}
                   style={{ background: `linear-gradient(90deg, ${p.colorFrom}, ${p.colorTo})` }}
                 >
                   <div className="tile-label">{p.label}</div>
@@ -399,7 +402,7 @@ export default function BlocksKids() {
               ))}
             </div>
             <div style={{ marginTop: 12, fontSize: 14, color: "#666" }}>
-              Seret blok ke area "Program Kamu" di bawah untuk menambah langkah. (<strong>Jangan</strong> seret ke grid.)
+              Klik blok di atas untuk menambah langkah ke area "Program Kamu" di bawah. (Drag dinonaktifkan untuk kenyamanan.)
             </div>
           </aside>
 
@@ -412,6 +415,7 @@ export default function BlocksKids() {
                 id="gridWrap"
                 className="grid-wrap"
                 style={{
+                  position: "relative", // ensure robot positioned inside arena
                   width: stageWidth,
                   height: stageHeight,
                   gridTemplateColumns: `repeat(${cols}, ${gridSize}px)`,
@@ -498,7 +502,7 @@ export default function BlocksKids() {
               >
                 {program.length === 0 ? (
                   <div style={{ color: "#666", padding: 12, borderRadius: 8, background: "#fbfbfd" }}>
-                    Program kosong — seret blok dari palette ke sini untuk menambah langkah.
+                    Program kosong — klik blok dari palette untuk menambah langkah.
                   </div>
                 ) : (
                   program.map((p, i) => (
@@ -520,7 +524,7 @@ export default function BlocksKids() {
                   ))
                 )}
               </div>
-              <div style={{ marginTop: 8, color: "#666", fontSize: 13 }}>Tip: Klik blok 'Ulangi' untuk mengubah jumlah pengulangan. Seret blok program untuk mengubah urutan.</div>
+              <div style={{ marginTop: 8, color: "#666", fontSize: 13 }}>Tip: Klik blok 'Ulangi' untuk mengubah jumlah pengulangan. Seret langkah program untuk mengubah urutan.</div>
             </div>
 
             {/* Log */}
