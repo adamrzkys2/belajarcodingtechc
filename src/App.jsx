@@ -312,41 +312,76 @@ export default function App() {
   };
 
   const nextQuestion = async () => {
-    if (!inited || !roomId || !roomData) return;
-    try {
-      const { ref, update } = await import("firebase/database");
-      const idx = roomData.currentIndex || 0;
-      const quiz = roomData.quiz || SAMPLE_QUIZ;
-      const q = quiz.questions[idx];
-      if (!q) return;
+  if (!inited || !roomId || !roomData) return;
+  try {
+    // dynamic imports dari firebase database
+    const { ref, get, update } = await import("firebase/database");
 
-      const answers = roomData.answers || {};
-      const updates = {};
+    // ambil jawaban terbaru langsung dari DB (snapshot, bukan dari local roomData)
+    const answersSnap = await get(ref(fb.dbRef.current, `rooms/${roomId}/answers`));
+    const answers = answersSnap && answersSnap.exists() ? answersSnap.val() : {};
 
-      // normalize choices and award points
-      Object.entries(answers).forEach(([pid, rawChoice]) => {
-        const choice = typeof rawChoice === "number" ? rawChoice : Number(rawChoice);
-        if (Number.isNaN(choice)) return;
-        const correct = choice === q.answer;
-        if (correct) {
-          const cur = (roomData.players && roomData.players[pid] && Number(roomData.players[pid].score)) || 0;
-          updates[`players/${pid}/score`] = cur + 100;
-        }
-      });
+    // ambil players snapshot untuk membaca skor terbaru
+    const playersSnap = await get(ref(fb.dbRef.current, `rooms/${roomId}/players`));
+    const players = playersSnap && playersSnap.exists() ? playersSnap.val() : {};
 
-      const nextIdx = idx + 1;
-      const newState = nextIdx >= quiz.questions.length ? "finished" : "question";
-      updates["currentIndex"] = nextIdx;
-      updates["answers"] = {};
-      updates["state"] = newState;
-
-      const rRef = ref(fb.dbRef.current, `rooms/${roomId}`);
-      await update(rRef, updates);
-      setLocalAnswer(null);
-    } catch (e) {
-      console.error("nextQuestion err", e);
+    const idx = roomData.currentIndex || 0;
+    const quiz = (roomData && roomData.quiz) || SAMPLE_QUIZ;
+    const q = quiz.questions[idx];
+    if (!q) {
+      console.warn("nextQuestion: pertanyaan tidak ditemukan untuk index", idx);
+      return;
     }
-  };
+
+    console.info("Scoring question", idx, "correct:", q.answer, "answers:", answers);
+
+    // prepare updates (batched)
+    const updates = {};
+
+    // iterate answers yang kita ambil dari DB dan award points
+    Object.entries(answers).forEach(([pid, rawChoice]) => {
+      // normalisasi tipe (string -> number)
+      const choice = typeof rawChoice === "number" ? rawChoice : Number(rawChoice);
+      if (Number.isNaN(choice)) {
+        console.warn("nextQuestion: invalid choice for", pid, rawChoice);
+        return;
+      }
+
+      const correct = choice === q.answer;
+      if (correct) {
+        const currentScore = Number((players && players[pid] && players[pid].score) || 0);
+        const newScore = currentScore + 100; // award +100
+        updates[`players/${pid}/score`] = newScore;
+        console.log(`Award ${pid} +100 (${currentScore} -> ${newScore})`);
+      }
+    });
+
+    // advance index and clear answers
+    const nextIdx = idx + 1;
+    const newState = nextIdx >= quiz.questions.length ? "finished" : "question";
+
+    updates["currentIndex"] = nextIdx;
+    updates["answers"] = {}; // reset answers for next question
+    updates["state"] = newState;
+
+    // tulis update sekali (atomic-ish)
+    const rRef = ref(fb.dbRef.current, `rooms/${roomId}`);
+    await update(rRef, updates);
+
+    // cleanup UI local state
+    setLocalAnswer(null);
+
+    // jika selesai, (opsional) mainkan sound end
+    if (newState === "finished") {
+      try { 
+        const ch = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-winning-sparkle-2016.mp3");
+        ch.volume = 0.6; ch.play().catch(()=>{});
+      } catch(e){}
+    }
+  } catch (err) {
+    console.error("nextQuestion error", err);
+  }
+};
 
   /* ---------- Timer: restart only when question state or index changes ---------- */
   useEffect(() => {
