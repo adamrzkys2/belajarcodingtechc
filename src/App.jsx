@@ -1,4 +1,22 @@
-// src/App.jsx
+/*
+Modern QuizLive — Enhanced UI (src/App.jsx)
+Single-file React component (modernized)
+Adds:
+- Full top header with logo, navigation, search, notifications, profile menu
+- Responsive mobile menu
+- Stats cards (players, questions, avg score)
+- Settings modal (theme toggle, sounds)
+- Footer
+- Polished spacing, gradients, and micro-interactions using Framer Motion
+
+Keep Firebase dynamic import and realtime features from previous version.
+
+Setup reminder:
+- Install dependencies: npm install firebase framer-motion
+- Tailwind configured in project
+- Add Firebase env vars in .env.local
+*/
+
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -53,6 +71,7 @@ export default function App() {
   const [roomId, setRoomId] = useState('');
   const [roomData, setRoomData] = useState(null);
   const [playerName, setPlayerName] = useState('');
+  const [joinRoomCode, setJoinRoomCode] = useState('');
   const [playerId, setPlayerId] = useState(null);
   const [isHost, setIsHost] = useState(false);
   const [localAnswer, setLocalAnswer] = useState(null);
@@ -76,19 +95,16 @@ export default function App() {
   // ---------- ROOM LISTENER ----------
   useEffect(() => {
     if (!inited || !roomId) return;
-    let unsubscribe = null;
     (async () => {
       const { ref, onValue } = await import('firebase/database');
       const roomRef = ref(fb.dbRef.current, `rooms/${roomId}`);
       onValue(roomRef, (snap) => {
         setRoomData(snap.exists() ? snap.val() : null);
       });
-      // Note: onValue returns an unsubscribe in some SDK wrappers, but this is fine for demo
     })();
     return () => {
       clearInterval(timerRef.current);
       timerRef.current = null;
-      if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, [inited, roomId]);
 
@@ -223,14 +239,14 @@ export default function App() {
   }, [roomData]);
 
   // ---------- UI components ----------
-  const IconBell = ({ className }) => (
-    <svg className={className || 'w-6 h-6'} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+  const IconBell = ({className}) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118.6 14.4V11a6 6 0 10-12 0v3.4c0 .538-.214 1.055-.595 1.445L4 17h5m6 0a3 3 0 11-6 0h6z" />
     </svg>
   );
 
-  const IconSearch = ({ className }) => (
-    <svg className={className || 'w-5 h-5'} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+  const IconSearch = ({className}) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
     </svg>
   );
@@ -332,13 +348,7 @@ export default function App() {
           {q.choices.map((c, idx) => {
             const selected = localAnswer === idx;
             return (
-              <motion.button
-                key={idx}
-                whileHover={{scale:1.02}}
-                whileTap={{scale:0.98}}
-                onClick={()=>submitAnswer(idx)}
-                className={`p-4 text-left rounded-lg border ${selected ? 'ring-2 ring-indigo-400 bg-indigo-50' : 'bg-white'}`}
-              >
+              <motion.button key={idx} whileHover={{scale:1.02}} whileTap={{scale:0.98}} onClick={()=>submitAnswer(idx)} className={`p-4 text-left rounded-lg border ${selected ? 'ring-2 ring-indigo-400 bg-indigo-50' : 'bg-white'}`}>
                 <div className="font-medium">{String.fromCharCode(65+idx)}. {c}</div>
               </motion.button>
             );
@@ -392,42 +402,9 @@ export default function App() {
   );
 
   // ---------- Main render ----------
-  // Inline fallback styles for when Tailwind isn't loaded yet
-  const rootStyleFallback = {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-    padding: 32,
-    background: dark ? '#0f172a' : '#f8fafc',
-    color: dark ? '#fff' : '#0f172a'
-  };
-
-  const containerStyleFallback = {
-    width: '100%',
-    maxWidth: 880,
-    textAlign: 'center',
-    zIndex: 10
-  };
-
   return (
-    <div style={rootStyleFallback} >
-      {/* blurred forest background (remote) */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: -10,
-        backgroundImage: "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1950&q=80')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'blur(16px)',
-        opacity: 0.38
-      }} />
-
-      {/* centered app container */}
-      <div style={containerStyleFallback} className="max-w-3xl mx-auto text-center">
+    <div max-w-3xl mx-auto text-center>
+      <div className="max-w-7xl mx-auto">
         <Header />
         <div className="mb-4">
           <Stats players={roomData ? roomData.players : {}} />
@@ -447,8 +424,8 @@ export default function App() {
               <div>
                 <input className="w-full border p-3 rounded-lg mb-3" placeholder="Your name" value={playerName} onChange={(e)=>setPlayerName(e.target.value)} />
                 <div className="flex gap-2">
-                  <input className="flex-1 border p-3 rounded-lg" placeholder="Room code" value={roomId} onChange={(e)=>setRoomId(e.target.value.toUpperCase())} />
-                  <button className="px-4 py-3 bg-green-600 text-white rounded-lg" onClick={()=>joinRoom(roomId, playerName)}>Join</button>
+                  <input className="flex-1 border p-3 rounded-lg" placeholder="Room code" value={joinRoomCode} onChange={(e)=>setJoinRoomCode(e.target.value.toUpperCase())} />
+                  <button className="px-4 py-3 bg-green-600 text-white rounded-lg" onClick={() => joinRoom(joinRoomCode, playerName)}>Join</button>
                 </div>
               </div>
             </div>
@@ -522,6 +499,7 @@ export default function App() {
         </footer>
       </div>
 
+      <div className="absolute inset-0 -z-10 bg-cover bg-center blur-3xl opacity-40" style={{backgroundImage: `url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1950&q=80')`}}></div>
       <SettingsModal open={showSettings} onClose={()=>setShowSettings(false)} />
     </div>
   );
