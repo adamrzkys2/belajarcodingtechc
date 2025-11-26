@@ -22,12 +22,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // ---------- SAMPLE QUIZ ----------
 const SAMPLE_QUIZ = {
-  id: 'sample-1',
-  title: 'General Knowledge — Live',
+  id: 'arduino-sensors-1',
+  title: 'Arduino & Sensor — Kuis (15 Soal)',
   questions: [
-    { id: 1, text: 'What is the capital of France?', choices: ['Paris','Madrid','Berlin','Rome'], answer: 0, time: 12 },
-    { id: 2, text: 'Which language runs in the browser?', choices: ['Python','C++','JavaScript','Java'], answer: 2, time: 10 },
-    { id: 3, text: 'Who painted the Mona Lisa?', choices: ['Van Gogh','Leonardo da Vinci','Picasso','Rembrandt'], answer: 1, time: 12 }
+    { id: 1, text: 'Pin Arduino manakah yang biasanya digunakan untuk input sensor analog?', choices: ['Pin Digital PWM','Pin Analog (A0-A5)','Pin Ground','Pin VCC'], answer: 1, time: 20 },
+    { id: 2, text: 'Sensor apa yang digunakan untuk mengukur suhu?', choices: ['Sensor Ultrasonik','Sensor PIR','DHT11/DHT22','IR Receiver'], answer: 2, time: 18 },
+    { id: 3, text: 'Sensor mana yang mengukur jarak menggunakan gelombang suara?', choices: ['Sensor Cahaya','Sensor Ultrasonik','Sensor Gas','Sensor Fleksibel'], answer: 1, time: 18 },
+    { id: 4, text: 'Modul apa yang digunakan untuk mendeteksi gerakan manusia?', choices: ['LDR','Sensor PIR','MQ-2','BMP180'], answer: 1, time: 15 },
+    { id: 5, text: 'Apa fungsi potensiometer ketika digunakan pada Arduino?', choices: ['Output digital on/off','Menghasilkan tegangan analog yang dapat diubah','Mengukur suhu','Mengirim sinyal nirkabel'], answer: 1, time: 15 },
+    { id: 6, text: 'Sensor apa yang digunakan untuk mendeteksi intensitas cahaya?', choices: ['Sensor Ultrasonik','LDR (Light Dependent Resistor)','DHT11','HC-SR04'], answer: 1, time: 15 },
+    { id: 7, text: 'Bagaimana sensor gas MQ mendeteksi adanya gas?', choices: ['Mengirim sinyal HIGH ketika ada gas','Mengeluarkan tegangan analog sesuai konsentrasi gas','Mematikan Arduino','Mengubah alamat I2C'], answer: 1, time: 20 },
+    { id: 8, text: 'Protokol komunikasi apa yang digunakan banyak sensor digital seperti modul I2C?', choices: ['PWM','SPI','I2C','UART'], answer: 2, time: 15 },
+    { id: 9, text: 'Apa fungsi resistor pull-down saat membaca tombol?', choices: ['Memberikan kondisi LOW saat tidak ditekan','Menaikkan tegangan','Menghilangkan noise','Memberi daya pada tombol'], answer: 0, time: 15 },
+    { id: 10, text: 'Modul mana yang digunakan untuk mengukur tekanan udara?', choices: ['BMP180/BMP280','Sensor PIR','Servo','Sensor Ultrasonik'], answer: 0, time: 18 },
+    { id: 11, text: 'Apa arti PWM dan mengapa digunakan?', choices: ['Pulse Width Modulation — mensimulasikan output analog dari pin digital','Pulse Width Modulation — mengukur suhu','Peripheral Wire Module — untuk sensor','Power Watt Management — untuk baterai'], answer: 0, time: 20 },
+    { id: 12, text: 'Sensor apa yang dapat mendeteksi api atau nyala?', choices: ['Sensor Api (berbasis IR)','Sensor Kelembaban Tanah','LDR','DHT11'], answer: 0, time: 15 },
+    { id: 13, text: 'Berapa tegangan umum untuk sensor Arduino UNO?', choices: ['3.3V saja','12V','5V (atau 3.3V untuk beberapa modul)','24V'], answer: 2, time: 12 },
+    { id: 14, text: 'Sensor apa yang digunakan untuk mengukur kelembaban tanah?', choices: ['Sensor Kelembaban Tanah','HC-SR04','MQ-7','Sensor PIR'], answer: 0, time: 15 },
+    { id: 15, text: 'Perangkat apa yang mengubah gerakan rotasi menjadi posisi sudut untuk umpan balik?', choices: ['Sensor Ultrasonik','Encoder','DHT22','Relay'], answer: 1, time: 18 }
   ]
 };
 
