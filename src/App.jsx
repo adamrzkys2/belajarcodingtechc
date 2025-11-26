@@ -53,15 +53,12 @@ const SAMPLE_QUIZ = {
 
 // ----- Firebase init -----
 const firebaseConfig = {
-  apiKey: "AIzaSyC42RvyYjjVnnhLJ_x06W8RC5aD3s3ZCXg",
-  authDomain: "belajarcoding-c9eee.firebaseapp.com",
-  projectId: "belajarcoding-c9eee",
-  storageBucket: "belajarcoding-c9eee.firebasestorage.app",
-  messagingSenderId: "389916009848",
-  appId: "1:389916009848:web:c9759c803a70e47772948d",
-  measurementId: "G-YQC4D42N5W"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
-
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
