@@ -1,21 +1,7 @@
 // src/App.jsx
 import React, { useEffect, useRef, useState } from "react";
 
-/**
- * Clean single-file App.jsx
- * - Bahasa Indonesia UI
- * - Arduino 15 soal sample
- * - Join input separated from active room
- * - Single-click answer lock + reveal colors (green/red)
- * - Background parallax (mouse move)
- * - Lobby bg music and question bg music (starts after first user interaction)
- * - Simple SFX on correct/wrong (via Audio objects)
- * - Firebase dynamic import preserved (reads env vars)
- *
- * NOTE: replace audio URLs with local files in /public if you prefer offline
- */
-
-/* ---------- SAMPLE KUIS (Arduino & Sensor — 15 Soal) ---------- */
+/* ---------- SAMPLE KUIS (Arduino & Sensor — 15 Soal, Bahasa Indonesia) ---------- */
 const SAMPLE_QUIZ = {
   id: "arduino-sensors-1",
   title: "Arduino & Sensor — Kuis (15 Soal)",
@@ -38,9 +24,56 @@ const SAMPLE_QUIZ = {
   ]
 };
 
+/* ---------- Responsive CSS injection ---------- */
+const responsiveStyles = `
+/* container */
+.app-container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 20px; box-sizing: border-box; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #0f172a; }
+
+/* header */
+.header-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 18px; }
+.logo { width:44px; height:44px; border-radius:10px; object-fit:cover; }
+.title { font-size:18px; font-weight:700; }
+.subtitle { font-size:12px; color:#6b7280; }
+
+/* grid */
+.grid-2col { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
+
+/* UI blocks */
+.card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 6px 18px rgba(15,23,42,0.06); }
+.stats-row { display:flex; gap:12px; margin-bottom: 16px; justify-content:center; }
+
+/* form */
+.btn { padding: 10px 14px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; background:#111827; color:#fff; box-sizing: border-box; }
+.btn.secondary { background: transparent; color: #111827; border-color: #e5e7eb; }
+.input { padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; box-sizing: border-box; }
+
+/* question choices */
+.choice-btn { padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; text-align:left; background:#fff; cursor:pointer; }
+.choice-btn[disabled] { cursor: default; opacity: 0.95; }
+
+/* footer */
+.footer { font-size:13px; color:#6b7280; margin-top: 18px; text-align: center; }
+
+/* small screens */
+@media (max-width: 900px) {
+  .grid-2col { grid-template-columns: 1fr; }
+  .header-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .stats-row { grid-template-columns: repeat(3,1fr); }
+}
+
+/* mobile */
+@media (max-width: 420px) {
+  .title { font-size: 16px; }
+  .btn { width: 100%; padding: 12px; font-size: 15px; }
+  .input { width: 100%; padding: 12px; font-size: 15px; }
+  .stats-row { flex-direction: column; gap: 8px; }
+  .choice-grid { grid-template-columns: 1fr !important; }
+}
+`;
+
 /* ---------- Helpers ---------- */
-const generateId = () => Math.random().toString(36).slice(2, 8).toUpperCase();
-const initials = (name = "Peserta") => (name || "").split(" ").map(s => s[0] || "").slice(0, 2).join("").toUpperCase();
+const genId = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+const initials = (name = "") => (name || "").split(" ").map(s => s[0] || "").slice(0, 2).join("").toUpperCase();
 
 /* ---------- Firebase dynamic loader ---------- */
 function useFirebase() {
@@ -66,32 +99,32 @@ function useFirebase() {
       readyRef.current = true;
       return { app, db };
     } catch (e) {
-      console.warn("Firebase init error", e);
+      console.warn("Firebase init failed", e);
       return {};
     }
   };
   return { init, appRef, dbRef };
 }
 
-/* ---------- App Component ---------- */
+/* ---------- App Component (full) ---------- */
 export default function App() {
   const fb = useFirebase();
   const [inited, setInited] = useState(false);
 
-  // room/user states
+  // Room & user
   const [roomId, setRoomId] = useState("");
   const [roomData, setRoomData] = useState(null);
-  const [joinCode, setJoinCode] = useState("");
   const [playerName, setPlayerName] = useState("");
+  const [joinCode, setJoinCode] = useState("");
   const [playerId, setPlayerId] = useState(null);
   const [isHost, setIsHost] = useState(false);
 
-  // quiz states
-  const [localAnswer, setLocalAnswer] = useState(null); // null means no selection yet
+  // Answer & timer
+  const [localAnswer, setLocalAnswer] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef(null);
 
-  // UI & background
+  // UI, background, audio
   const [dark, setDark] = useState(false);
   const bgRef = useRef(null);
 
@@ -99,6 +132,16 @@ export default function App() {
   const lobbyAudioRef = useRef(null);
   const questionBgmRef = useRef(null);
   const audioAllowedRef = useRef(false);
+
+  /* inject responsive CSS once */
+  useEffect(() => {
+    if (!document.getElementById("app-responsive-styles")) {
+      const s = document.createElement("style");
+      s.id = "app-responsive-styles";
+      s.innerHTML = responsiveStyles;
+      document.head.appendChild(s);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -111,23 +154,26 @@ export default function App() {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
-  /* ---------- Firebase room listener (only when joined or created) ---------- */
+  /* ---------- Room listener (if joined) ---------- */
   useEffect(() => {
     if (!inited || !roomId) return;
-    let unsub = null;
+    let stop = false;
     (async () => {
       try {
         const { ref, onValue } = await import("firebase/database");
         const rRef = ref(fb.dbRef.current, `rooms/${roomId}`);
-        onValue(rRef, (snap) => setRoomData(snap.exists() ? snap.val() : null));
+        onValue(rRef, (snap) => {
+          if (stop) return;
+          setRoomData(snap.exists() ? snap.val() : null);
+        });
       } catch (e) {
-        console.warn("room listener error", e);
+        console.warn("room listener err", e);
       }
     })();
     return () => {
+      stop = true;
       clearInterval(timerRef.current);
       timerRef.current = null;
-      if (typeof unsub === "function") unsub();
     };
   }, [inited, roomId]);
 
@@ -141,15 +187,74 @@ export default function App() {
         await set(pRef, true);
         onDisconnect(pRef).set(false);
       } catch (e) {
-        console.warn("presence error", e);
+        console.warn("presence err", e);
       }
     })();
   }, [inited, roomId, playerId]);
 
-  /* ---------- Create / Join / Leave / Start / Next ---------- */
+  /* ---------- audio init & control ---------- */
+  useEffect(() => {
+    try {
+      lobbyAudioRef.current = new Audio("https://assets.mixkit.co/music/preview/mixkit-happy-ukulele-219.mp3");
+      lobbyAudioRef.current.loop = true;
+      lobbyAudioRef.current.volume = 0.28;
+      questionBgmRef.current = new Audio("https://assets.mixkit.co/music/preview/mixkit-electronic-ambient-1106.mp3");
+      questionBgmRef.current.loop = true;
+      questionBgmRef.current.volume = 0.12;
+    } catch (e) {
+      console.warn("audio init failed", e);
+    }
+
+    const resume = () => {
+      audioAllowedRef.current = true;
+      try { lobbyAudioRef.current && lobbyAudioRef.current.play().catch(()=>{}); } catch(e){}
+      try { questionBgmRef.current && questionBgmRef.current.play().catch(()=>{}); } catch(e){}
+      window.removeEventListener("pointerdown", resume);
+    };
+    window.addEventListener("pointerdown", resume, { once: true });
+
+    return () => {
+      try { lobbyAudioRef.current && lobbyAudioRef.current.pause(); } catch(e){}
+      try { questionBgmRef.current && questionBgmRef.current.pause(); } catch(e){}
+      window.removeEventListener("pointerdown", resume);
+    };
+  }, []);
+
+  useEffect(() => {
+    const state = roomData && roomData.state;
+    if (!audioAllowedRef.current) return;
+    try {
+      if (state === "lobby") {
+        questionBgmRef.current && (questionBgmRef.current.pause(), questionBgmRef.current.currentTime = 0);
+        lobbyAudioRef.current && lobbyAudioRef.current.play().catch(()=>{});
+      } else if (state === "question") {
+        lobbyAudioRef.current && (lobbyAudioRef.current.pause(), lobbyAudioRef.current.currentTime = 0);
+        questionBgmRef.current && questionBgmRef.current.play().catch(()=>{});
+      } else {
+        lobbyAudioRef.current && (lobbyAudioRef.current.pause(), lobbyAudioRef.current.currentTime = 0);
+        questionBgmRef.current && (questionBgmRef.current.pause(), questionBgmRef.current.currentTime = 0);
+      }
+    } catch (e) { /* ignore */ }
+  }, [roomData && roomData.state]);
+
+  /* ---------- background parallax ---------- */
+  useEffect(() => {
+    const el = bgRef.current;
+    if (!el) return;
+    const onMove = (e) => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      el.style.backgroundPosition = `${50 + (x - 50) / 10}% ${50 + (y - 50) / 10}%`;
+      el.style.transform = `scale(1.02) translate(${(x - 50) / 50}px, ${(y - 50) / 50}px)`;
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
+
+  /* ---------- CRUD: create/join/leave/start/next ---------- */
   const createRoom = async () => {
     if (!inited) return alert("Firebase belum siap");
-    const id = generateId();
+    const id = genId();
     try {
       const { ref, set } = await import("firebase/database");
       const rRef = ref(fb.dbRef.current, `rooms/${id}`);
@@ -157,8 +262,9 @@ export default function App() {
       await set(rRef, initial);
       setRoomId(id);
       setIsHost(true);
-      // start lobby music if allowed later via audio effect
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error("createRoom err", e);
+    }
   };
 
   const joinRoom = async (code, name) => {
@@ -174,7 +280,10 @@ export default function App() {
       setRoomId(code);
       setIsHost(false);
       setJoinCode("");
-    } catch (e) { console.error(e); alert("Gagal gabung: cek kode room") }
+    } catch (e) {
+      console.error("joinRoom err", e);
+      alert("Gagal gabung - cek kode room");
+    }
   };
 
   const leaveRoom = async () => {
@@ -199,80 +308,47 @@ export default function App() {
       const { ref, update } = await import("firebase/database");
       const rRef = ref(fb.dbRef.current, `rooms/${roomId}`);
       await update(rRef, { state: "question", currentIndex: 0, answers: {} });
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("startQuiz err", e); }
   };
 
-const nextQuestion = async () => {
-  if (!inited || !roomId || !roomData) return;
-  try {
-    const { ref, update } = await import("firebase/database");
+  const nextQuestion = async () => {
+    if (!inited || !roomId || !roomData) return;
+    try {
+      const { ref, update } = await import("firebase/database");
+      const idx = roomData.currentIndex || 0;
+      const quiz = roomData.quiz || SAMPLE_QUIZ;
+      const q = quiz.questions[idx];
+      if (!q) return;
 
-    // current index (soal yang sedang diproses)
-    const idx = roomData.currentIndex || 0;
-    const quiz = roomData.quiz || SAMPLE_QUIZ;
-    const q = quiz.questions[idx];
+      const answers = roomData.answers || {};
+      const updates = {};
 
-    if (!q) {
-      console.warn("nextQuestion: pertanyaan tidak ditemukan untuk index", idx);
-      return;
+      // normalize choices and award points
+      Object.entries(answers).forEach(([pid, rawChoice]) => {
+        const choice = typeof rawChoice === "number" ? rawChoice : Number(rawChoice);
+        if (Number.isNaN(choice)) return;
+        const correct = choice === q.answer;
+        if (correct) {
+          const cur = (roomData.players && roomData.players[pid] && Number(roomData.players[pid].score)) || 0;
+          updates[`players/${pid}/score`] = cur + 100;
+        }
+      });
+
+      const nextIdx = idx + 1;
+      const newState = nextIdx >= quiz.questions.length ? "finished" : "question";
+      updates["currentIndex"] = nextIdx;
+      updates["answers"] = {};
+      updates["state"] = newState;
+
+      const rRef = ref(fb.dbRef.current, `rooms/${roomId}`);
+      await update(rRef, updates);
+      setLocalAnswer(null);
+    } catch (e) {
+      console.error("nextQuestion err", e);
     }
+  };
 
-    // current answers snapshot (may contain numbers or strings)
-    const answers = roomData.answers || {};
-    console.info("Scoring answers for question", idx, "correct:", q.answer, "answers:", answers);
-
-    // prepare batched updates
-    const updates = {};
-
-    // iterate answers and award points if correct
-    Object.entries(answers).forEach(([pid, rawChoice]) => {
-      // normalize choice to number (handles "1" vs 1)
-      const choice = typeof rawChoice === "number" ? rawChoice : Number(rawChoice);
-
-      // skip if NaN
-      if (Number.isNaN(choice)) {
-        console.warn("Skipping player", pid, "invalid choice:", rawChoice);
-        return;
-      }
-
-      const correct = choice === q.answer;
-      if (correct) {
-        // current score (defensive)
-        const current = (roomData.players && roomData.players[pid] && Number(roomData.players[pid].score)) || 0;
-        const newScore = current + 100; // you can change point value here
-        updates[`players/${pid}/score`] = newScore;
-        console.log(`Awarding 100 to ${pid} (was ${current} -> ${newScore})`);
-      } else {
-        // optional: you might log wrong answers if needed
-        // console.log(`Player ${pid} wrong (choice ${choice})`);
-      }
-    });
-
-    // increment index and reset answers
-    const nextIdx = idx + 1;
-    const newState = nextIdx >= quiz.questions.length ? "finished" : "question";
-
-    updates["currentIndex"] = nextIdx;
-    updates["answers"] = {};   // clear answers for next question
-    updates["state"] = newState;
-
-    const rRef = ref(fb.dbRef.current, `rooms/${roomId}`);
-    await update(rRef, updates);
-
-    // local cleanup
-    setLocalAnswer(null);
-
-    // optional: if finished, play end sound (you may already have this)
-    if (newState === "finished") {
-      try { playToneEnd(); } catch(e) {}
-    }
-  } catch (err) {
-    console.error("nextQuestion error", err);
-  }
-};
-
-
-  /* ---------- Timer: restart only when question index or state changes ---------- */
+  /* ---------- Timer: restart only when question state or index changes ---------- */
   useEffect(() => {
     if (!roomData) return;
     const state = roomData.state;
@@ -288,7 +364,7 @@ const nextQuestion = async () => {
     setTimeLeft(q.time);
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      setTimeLeft(t => {
+      setTimeLeft((t) => {
         if (t <= 1) {
           clearInterval(timerRef.current);
           if (isHost) nextQuestion();
@@ -300,120 +376,55 @@ const nextQuestion = async () => {
     return () => clearInterval(timerRef.current);
   }, [roomData && roomData.state, roomData && roomData.currentIndex]);
 
-  /* ---------- Reset local answer when question changes ---------- */
   useEffect(() => {
     if (!roomData) return;
     setLocalAnswer(null);
   }, [roomData && roomData.currentIndex]);
 
-  /* ---------- Background parallax ---------- */
-  useEffect(() => {
-    const el = bgRef.current;
-    if (!el) return;
-    const onMove = (e) => {
-      const x = (e.clientX / window.innerWidth) * 100;
-      const y = (e.clientY / window.innerHeight) * 100;
-      el.style.backgroundPosition = `${50 + (x - 50) / 10}% ${50 + (y - 50) / 10}%`;
-      el.style.transform = `scale(1.02) translate(${(x - 50) / 50}px, ${(y - 50) / 50}px)`;
-    };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
+  /* ---------- submitAnswer: lock on first click, write to DB, play SFX ---------- */
+  const submitAnswer = async (choice) => {
+    if (localAnswer !== null) return; // locked
+    if (!inited || !roomId || !playerId) return alert("Silakan gabung room terlebih dahulu.");
+    setLocalAnswer(choice);
 
-  /* ---------- Audio setup (lobby bg, question bg, sfx) ---------- */
-  useEffect(() => {
-    // prepare Audio objects (try/catch for browsers that block)
-    try {
-      lobbyAudioRef.current = new Audio("https://assets.mixkit.co/music/preview/mixkit-happy-ukulele-219.mp3");
-      lobbyAudioRef.current.loop = true;
-      lobbyAudioRef.current.volume = 0.28;
-      questionBgmRef.current = new Audio("https://assets.mixkit.co/music/preview/mixkit-electronic-ambient-1106.mp3");
-      questionBgmRef.current.loop = true;
-      questionBgmRef.current.volume = 0.12;
-    } catch (e) {
-      console.warn("audio init failed", e);
-    }
-    // start playback only after first gesture
-    const resume = () => {
-      audioAllowedRef.current = true;
-      try { lobbyAudioRef.current && lobbyAudioRef.current.play().catch(()=>{}); } catch(e){}
-      try { questionBgmRef.current && questionBgmRef.current.play().catch(()=>{}); } catch(e){}
-      window.removeEventListener("pointerdown", resume);
-    };
-    window.addEventListener("pointerdown", resume, { once: true });
-    return () => {
-      try { lobbyAudioRef.current && lobbyAudioRef.current.pause(); } catch(e){}
-      try { questionBgmRef.current && questionBgmRef.current.pause(); } catch(e){}
-      window.removeEventListener("pointerdown", resume);
-    };
-  }, []);
-
-  // switch background music based on room state
-  useEffect(() => {
-    const state = roomData && roomData.state;
-    if (!audioAllowedRef.current) return;
-    try {
-      if (state === "lobby") {
-        questionBgmRef.current && (questionBgmRef.current.pause(), questionBgmRef.current.currentTime = 0);
-        lobbyAudioRef.current && lobbyAudioRef.current.play().catch(()=>{});
-      } else if (state === "question") {
-        lobbyAudioRef.current && (lobbyAudioRef.current.pause(), lobbyAudioRef.current.currentTime = 0);
-        questionBgmRef.current && questionBgmRef.current.play().catch(()=>{});
-      } else {
-        lobbyAudioRef.current && (lobbyAudioRef.current.pause(), lobbyAudioRef.current.currentTime = 0);
-        questionBgmRef.current && (questionBgmRef.current.pause(), questionBgmRef.current.currentTime = 0);
-      }
-    } catch (e) { /* ignore */ }
-  }, [roomData && roomData.state]);
-
-  /* ---------- Submit answer (single click lock) ---------- */
-  const submitAnswer = async (choiceIndex) => {
-    if (localAnswer !== null) return; // already chosen
-    if (!inited || !roomId || !playerId) {
-      alert("Silakan gabung room dulu.");
-      return;
-    }
-    setLocalAnswer(choiceIndex);
-
-    // determine correctness locally
+    // local correctness
     const quiz = roomData?.quiz || SAMPLE_QUIZ;
-    const qidx = roomData?.currentIndex || 0;
-    const correctIndex = quiz.questions[qidx].answer;
+    const idx = roomData?.currentIndex || 0;
+    const correctIndex = quiz.questions[idx].answer;
 
     // play SFX
     try {
-      if (choiceIndex === correctIndex) {
-        const s = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3");
-        s.volume = 0.6;
-        s.play().catch(()=>{});
+      if (choice === correctIndex) {
+        const ch = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3");
+        ch.volume = 0.6; ch.play().catch(()=>{});
       } else {
-        const s = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3");
-        s.volume = 0.6;
-        s.play().catch(()=>{});
+        const ch = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3");
+        ch.volume = 0.6; ch.play().catch(()=>{});
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
 
-    // write to DB
     try {
       const { ref, set } = await import("firebase/database");
       const aRef = ref(fb.dbRef.current, `rooms/${roomId}/answers/${playerId}`);
-      await set(aRef, choiceIndex);
-    } catch (e) { console.error("submit error", e); }
+      await set(aRef, choice);
+    } catch (e) {
+      console.error("submitAnswer err", e);
+    }
   };
 
-  /* ---------- Small UI components ---------- */
+  /* ---------- UI components ---------- */
   const Header = () => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+    <div className="header-row">
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <img src="/logo.png" alt="Logo" style={{ width: 44, height: 44, borderRadius: 10 }} />
+        <img className="logo" src="/logo.jpg" alt="Logo" />
         <div>
-          <div style={{ fontWeight: 700 }}>QuizLive</div>
-          <div style={{ fontSize: 13, color: "#6b7280" }}>Kuis kelas secara real-time</div>
+          <div className="title">QuizLive</div>
+          <div className="subtitle">Kuis kelas secara real-time</div>
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <button onClick={() => setDark(d => !d)} style={{ padding: "6px 10px", borderRadius: 8 }}>Tema</button>
-        <button onClick={() => { lobbyAudioRef.current && lobbyAudioRef.current.pause(); questionBgmRef.current && questionBgmRef.current.pause(); }} style={{ padding: "6px 10px", borderRadius: 8 }}>Mute</button>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <button className="btn secondary" onClick={() => setDark(d => !d)} style={{ background: dark ? "#111827" : "transparent", color: dark ? "#fff" : "#111827" }}>{dark ? "Gelap" : "Terang"}</button>
+        <button className="btn secondary" onClick={() => { lobbyAudioRef.current && lobbyAudioRef.current.pause(); questionBgmRef.current && questionBgmRef.current.pause(); }}>Mute</button>
       </div>
     </div>
   );
@@ -427,16 +438,16 @@ const nextQuestion = async () => {
       return Math.round(ps.reduce((s, p) => s + (p.score || 0), 0) / ps.length);
     })();
     return (
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, justifyContent: "center" }}>
-        <div style={{ padding: 12, background: "#fff", borderRadius: 10, minWidth: 120, textAlign: "center" }}>
+      <div className="stats-row">
+        <div style={{ minWidth: 120, textAlign: "center" }} className="card">
           <div style={{ fontSize: 12, color: "#6b7280" }}>Peserta</div>
           <div style={{ fontWeight: 700, fontSize: 20 }}>{numPlayers}</div>
         </div>
-        <div style={{ padding: 12, background: "#fff", borderRadius: 10, minWidth: 120, textAlign: "center" }}>
+        <div style={{ minWidth: 120, textAlign: "center" }} className="card">
           <div style={{ fontSize: 12, color: "#6b7280" }}>Soal</div>
           <div style={{ fontWeight: 700, fontSize: 20 }}>{numQ}</div>
         </div>
-        <div style={{ padding: 12, background: "#fff", borderRadius: 10, minWidth: 120, textAlign: "center" }}>
+        <div style={{ minWidth: 120, textAlign: "center" }} className="card">
           <div style={{ fontSize: 12, color: "#6b7280" }}>Rata-rata Skor</div>
           <div style={{ fontWeight: 700, fontSize: 20 }}>{avg}</div>
         </div>
@@ -447,7 +458,7 @@ const nextQuestion = async () => {
   const PlayerList = ({ players }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {Object.entries(players || {}).map(([pid, p]) => (
-        <div key={pid} style={{ display: "flex", justifyContent: "space-between", padding: 8, background: "#fff", borderRadius: 8 }}>
+        <div key={pid} style={{ display: "flex", justifyContent: "space-between", padding: 8, borderRadius: 8, background: "#fff" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{initials(p.name)}</div>
             <div>
@@ -465,9 +476,8 @@ const nextQuestion = async () => {
     const idx = roomData?.currentIndex || 0;
     const correctIndex = roomData?.quiz?.questions?.[idx]?.answer;
     const pct = q && q.time ? (timeLeft / q.time) * 100 : 0;
-
     return (
-      <div style={{ padding: 16, background: "#fff", borderRadius: 14, boxShadow: "0 6px 18px rgba(15,23,42,0.06)" }}>
+      <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{ fontSize: 16, fontWeight: 700 }}>{q.text}</div>
           <div style={{ color: "#6b7280" }}>{timeLeft}s</div>
@@ -477,34 +487,26 @@ const nextQuestion = async () => {
           <div style={{ height: "100%", width: `${pct}%`, background: "linear-gradient(90deg,#34d399,#fbbf24)" }} />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="choice-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {q.choices.map((choiceText, i) => {
             const selected = localAnswer === i;
             const isCorrect = correctIndex === i;
             let bg = "#fff";
-            let styleExtra = {};
             if (localAnswer !== null) {
               if (selected && isCorrect) bg = "#dcfce7"; // green
               else if (selected && !isCorrect) bg = "#fee2e2"; // red
-              else if (isCorrect) bg = "#ecfdf5"; // light green reveal
+              else if (isCorrect) bg = "#ecfdf5"; // reveal correct
               else bg = "#fafafa";
             } else {
               bg = "#fff";
-              styleExtra.cursor = "pointer";
             }
             return (
               <button
                 key={i}
                 onClick={() => submitAnswer(i)}
                 disabled={localAnswer !== null}
-                style={{
-                  padding: 12,
-                  borderRadius: 10,
-                  border: "1px solid #e5e7eb",
-                  background: bg,
-                  textAlign: "left",
-                  ...styleExtra
-                }}
+                className="choice-btn"
+                style={{ background: bg }}
               >
                 <div style={{ fontWeight: 600 }}>{String.fromCharCode(65 + i)}. {choiceText}</div>
               </button>
@@ -515,21 +517,13 @@ const nextQuestion = async () => {
     );
   };
 
-  /* ---------- Layout / Render ---------- */
-  const rootStyle = {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 28,
-    background: dark ? "#0f172a" : "#f8fafc"
-  };
-
-  const containerStyle = { width: "100%", maxWidth: 980, zIndex: 10 };
+  /* ---------- Layout ---------- */
+  const rootStyle = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 28, background: dark ? "#0f172a" : "#f8fafc" };
+  const containerStyle = { width: "100%", maxWidth: 1100, zIndex: 10 };
 
   return (
     <div style={rootStyle}>
-      {/* interactive background */}
+      {/* interactive blurred background */}
       <div
         ref={bgRef}
         style={{
@@ -546,32 +540,32 @@ const nextQuestion = async () => {
         }}
       />
 
-      <div style={containerStyle}>
+      <div style={containerStyle} className="app-container">
         <Header />
         <Stats players={roomData ? roomData.players : {}} />
 
         {/* Lobby / Join */}
         {!roomId && (
-          <div style={{ padding: 18, background: "#fff", borderRadius: 14, marginBottom: 16 }}>
+          <div className="card" style={{ marginBottom: 16 }}>
             <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Buat atau gabung room live</h2>
             <p style={{ color: "#6b7280", marginBottom: 12 }}>Buat room dan bagikan kodenya. Peserta dapat bergabung dari perangkat mereka.</p>
 
-            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-              <button onClick={createRoom} style={{ padding: "10px 14px", background: "#4f46e5", color: "#fff", borderRadius: 8 }}>Buat Room</button>
-              <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert("Link aplikasi disalin"); }} style={{ padding: "10px 14px", borderRadius: 8 }}>Bagikan Link Aplikasi</button>
+            <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+              <button className="btn" onClick={createRoom} style={{ background: "#4f46e5" }}>Buat Room</button>
+              <button className="btn secondary" onClick={() => { navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert("Link aplikasi disalin"); }}>Bagikan Link Aplikasi</button>
             </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
-              <input placeholder="Nama Anda" value={playerName} onChange={(e) => setPlayerName(e.target.value)} style={{ padding: 10, flex: 1, borderRadius: 8, border: "1px solid #e5e7eb" }} />
-              <input placeholder="Kode Room" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} style={{ padding: 10, width: 160, borderRadius: 8, border: "1px solid #e5e7eb" }} />
-              <button onClick={() => joinRoom(joinCode, playerName)} style={{ padding: "10px 14px", background: "#059669", color: "#fff", borderRadius: 8 }}>Gabung</button>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <input className="input" placeholder="Nama Anda" value={playerName} onChange={(e) => setPlayerName(e.target.value)} />
+              <input className="input" placeholder="Kode Room" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} style={{ width: 160 }} />
+              <button className="btn" onClick={() => joinRoom(joinCode, playerName)} style={{ background: "#059669" }}>Gabung</button>
             </div>
           </div>
         )}
 
         {/* Room area */}
         {roomId && roomData && (
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+          <div className="grid-2col">
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
@@ -579,16 +573,16 @@ const nextQuestion = async () => {
                   <div style={{ fontSize: 20, fontWeight: 800 }}>{roomId}</div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {isHost && <button onClick={startQuiz} style={{ padding: "8px 12px", background: "#4f46e5", color: "#fff", borderRadius: 8 }}>Mulai</button>}
-                  {isHost && <button onClick={nextQuestion} style={{ padding: "8px 12px", borderRadius: 8 }}>Selanjutnya</button>}
-                  <button onClick={leaveRoom} style={{ padding: "8px 12px", borderRadius: 8 }}>Keluar</button>
+                  {isHost && <button className="btn" onClick={startQuiz} style={{ background: "#4f46e5" }}>Mulai</button>}
+                  {isHost && <button className="btn secondary" onClick={nextQuestion}>Selanjutnya</button>}
+                  <button className="btn secondary" onClick={leaveRoom}>Keluar</button>
                 </div>
               </div>
 
-              {/* Lobby view */}
+              {/* Lobby */}
               {roomData.state === "lobby" && (
-                <div style={{ padding: 12, background: "#fff", borderRadius: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div className="card" style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                     <div>
                       <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Menunggu di lobi</h3>
                       <div style={{ color: "#6b7280" }}>Bagikan kode room kepada peserta</div>
@@ -599,16 +593,16 @@ const nextQuestion = async () => {
                 </div>
               )}
 
-              {/* Question view */}
+              {/* Question */}
               {roomData.state === "question" && (
-                <div>
+                <div style={{ marginBottom: 12 }}>
                   <QuestionCard q={roomData.quiz.questions[roomData.currentIndex]} />
                 </div>
               )}
 
-              {/* Finished view */}
+              {/* Finished */}
               {roomData.state === "finished" && (
-                <div style={{ padding: 12, background: "#fff", borderRadius: 12 }}>
+                <div className="card">
                   <h3 style={{ fontSize: 18, fontWeight: 700 }}>Kuis Selesai</h3>
                   <div style={{ marginTop: 8 }}>
                     <PlayerList players={roomData.players} />
@@ -617,24 +611,25 @@ const nextQuestion = async () => {
               )}
             </div>
 
+            {/* Right column */}
             <div>
-              <div style={{ marginBottom: 12 }}>
-                <h4 style={{ fontWeight: 700 }}>Papan Skor</h4>
-                <div style={{ padding: 10, background: "#fff", borderRadius: 12 }}>
-                  <ol style={{ paddingLeft: 16, margin: 0 }}>
-                    {Object.entries(roomData.players || {}).sort((a,b) => (b[1].score||0)-(a[1].score||0)).map(([pid,p]) => (
-                      <li key={pid} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                        <span>{p.name}</span>
-                        <strong>{p.score||0}</strong>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
+              <div className="card" style={{ marginBottom: 12 }}>
+                <h4 style={{ marginTop: 0 }}>Papan Skor</h4>
+                <ol style={{ paddingLeft: 16, margin: 0 }}>
+                  {Object.entries(roomData.players || {}).sort((a, b) => (b[1].score || 0) - (a[1].score || 0)).map(([pid, p]) => (
+                    <li key={pid} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span>{p.name}</span>
+                      <strong>{p.score || 0}</strong>
+                    </li>
+                  ))}
+                </ol>
               </div>
 
-              <div style={{ padding: 10, background: "#fff", borderRadius: 12 }}>
-                <h4 style={{ fontWeight: 700 }}>Peserta</h4>
-                <PlayerList players={roomData.players} />
+              <div className="card">
+                <h4 style={{ marginTop: 0 }}>Peserta</h4>
+                <div>
+                  <PlayerList players={roomData.players} />
+                </div>
               </div>
             </div>
           </div>
@@ -642,12 +637,10 @@ const nextQuestion = async () => {
 
         {/* Connecting */}
         {roomId && !roomData && (
-          <div style={{ padding: 12, background: "#fff", borderRadius: 12, marginTop: 12 }}>Menghubungkan ke room... (Jika room belum ada, host harus membuatnya.)</div>
+          <div className="card" style={{ marginTop: 12 }}>Menghubungkan ke room... (Jika room belum ada, host harus membuatnya.)</div>
         )}
 
-        <footer style={{ marginTop: 18, color: "#6b7280" }}>
-          © {new Date().getFullYear()} QuizLive — Dibuat untuk ruang kelas
-        </footer>
+        <div className="footer">© {new Date().getFullYear()} QuizLive — Dibuat untuk ruang kelas</div>
       </div>
     </div>
   );
