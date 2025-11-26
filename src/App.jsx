@@ -309,7 +309,7 @@ export default function App() {
       <div className="flex items-center gap-4">
         <img src="/logo.jpg" alt="Logo" className="w-10 h-10 rounded-full shadow-md" />
         <div>
-          <div className="text-lg font-extrabold">QuizLive</div>
+          <div className="text-lg font-extrabold">TECH-C ROBOTIC CODING</div>
           <div className="text-sm text-gray-500">Kuis kelas secara real-time</div>
         </div>
       </div>
