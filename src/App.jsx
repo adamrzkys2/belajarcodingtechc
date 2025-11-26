@@ -269,14 +269,14 @@ export default function App() {
         <div className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white px-3 py-2 rounded-full font-bold">QL</div>
         <div>
           <div className="text-lg font-extrabold">QuizLive</div>
-          <div className="text-sm text-gray-500">Realtime classroom quizzes</div>
+          <div className="text-sm text-gray-500">Kuis kelas secara real-time</div>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="hidden md:flex items-center bg-white border rounded-full px-3 py-2 shadow-sm">
           <IconSearch className="w-5 h-5 text-gray-400" />
-          <input placeholder="Search quizzes, rooms..." className="ml-2 outline-none w-48" />
+          <input placeholder="Cari kuis, kode room..." className="ml-2 outline-none w-48" />
         </div>
 
         <div className="relative">
@@ -388,20 +388,20 @@ export default function App() {
         <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <motion.div initial={{y:20,opacity:0}} animate={{y:0,opacity:1}} exit={{y:20,opacity:0}} className="w-full max-w-md p-6 bg-white rounded-2xl shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Settings</h3>
-              <button onClick={onClose} className="text-gray-500">Close</button>
+              <h3 className="text-lg font-semibold">Pengaturan</h3>
+              <button onClick={onClose} className="text-gray-500">Tutup</button>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium">Theme</div>
+                  <div className="text-sm font-medium">Tema</div>
                   <div className="text-xs text-gray-500">Switch between light & dark</div>
                 </div>
-                <button onClick={()=>setDark(!dark)} className="px-3 py-2 border rounded">{dark ? 'Dark' : 'Light'}</button>
+                <button onClick={()=>setDark(!dark)} className="px-3 py-2 border rounded">{dark ? 'Gelap' : 'Terang'}</button>
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium">Sounds</div>
+                  <div className="text-sm font-medium">Suara</div>
                   <div className="text-xs text-gray-500">Toggle UI sounds</div>
                 </div>
                 <button className="px-3 py-2 border rounded">Toggle</button>
@@ -429,15 +429,15 @@ export default function App() {
                 <h2 className="text-2xl font-bold mb-2">Host or join a live room</h2>
                 <p className="text-sm text-gray-500 mb-4">Create a room and share the code. Players can join from their devices.</p>
                 <div className="flex gap-2">
-                  <button className="px-4 py-3 bg-indigo-600 text-white rounded-lg" onClick={createRoom}>Create Room</button>
-                  <button className="px-4 py-3 border rounded-lg" onClick={()=>{navigator.clipboard && navigator.clipboard.writeText(window.location.href)}}>Share App Link</button>
+                  <button className="px-4 py-3 bg-indigo-600 text-white rounded-lg" onClick={createRoom}>Buat Room</button>
+                  <button className="px-4 py-3 border rounded-lg" onClick={()=>{navigator.clipboard && navigator.clipboard.writeText(window.location.href)}}>Bagikan Link Aplikasi</button>
                 </div>
               </div>
               <div>
-                <input className="w-full border p-3 rounded-lg mb-3" placeholder="Your name" value={playerName} onChange={(e)=>setPlayerName(e.target.value)} />
+                <input className="w-full border p-3 rounded-lg mb-3" placeholder="Nama Anda" value={playerName} onChange={(e)=>setPlayerName(e.target.value)} />
                 <div className="flex gap-2">
-                  <input className="flex-1 border p-3 rounded-lg" placeholder="Room code" value={joinRoomCode} onChange={(e)=>setJoinRoomCode(e.target.value.toUpperCase())} />
-                  <button className="px-4 py-3 bg-green-600 text-white rounded-lg" onClick={() => joinRoom(joinRoomCode, playerName)}>Join</button>
+                  <input className="flex-1 border p-3 rounded-lg" placeholder="Kode Room" value={joinRoomCode} onChange={(e)=>setJoinRoomCode(e.target.value.toUpperCase())} />
+                  <button className="px-4 py-3 bg-green-600 text-white rounded-lg" onClick={() => joinRoom(joinRoomCode, playerName)}>Gabung</button>
                 </div>
               </div>
             </div>
@@ -453,9 +453,9 @@ export default function App() {
                   <div className="text-2xl font-bold">{roomId}</div>
                 </div>
                 <div className="space-x-2">
-                  {isHost && <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg" onClick={startQuiz}>Start</button>}
-                  {isHost && <button className="px-4 py-2 border rounded-lg" onClick={nextQuestion}>Next</button>}
-                  <button className="px-3 py-2 border rounded-lg" onClick={leaveRoom}>Leave</button>
+                  {isHost && <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg" onClick={startQuiz}>Mulai</button>}
+                  {isHost && <button className="px-4 py-2 border rounded-lg" onClick={nextQuestion}>Selanjutnya</button>}
+                  <button className="px-3 py-2 border rounded-lg" onClick={leaveRoom}>Keluar</button>
                 </div>
               </div>
 
@@ -464,8 +464,8 @@ export default function App() {
                   <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="p-6 bg-white rounded-2xl shadow-md">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-xl font-semibold">Waiting in lobby</h3>
-                        <div className="text-sm text-gray-500">Share this room code with players</div>
+                        <h3 className="text-xl font-semibold">Menunggu di lobi</h3>
+                        <div className="text-sm text-gray-500">Bagikan kode room kepada peserta</div>
                       </div>
                       <div className="text-lg font-mono bg-slate-100 px-3 py-2 rounded-lg">{roomId}</div>
                     </div>
@@ -479,7 +479,7 @@ export default function App() {
 
                 {roomData.state === 'finished' && (
                   <motion.div initial={{opacity:0}} animate={{opacity:1}} className="p-6 bg-white rounded-2xl shadow-md">
-                    <h3 className="text-xl font-semibold mb-3">Quiz Finished</h3>
+                    <h3 className="text-xl font-semibold mb-3">Kuis Selesai</h3>
                     <Leaderboard players={roomData.players} />
                   </motion.div>
                 )}
@@ -500,13 +500,13 @@ export default function App() {
         )}
 
         {!roomData && roomId && (
-          <div className="p-6 bg-white rounded-2xl shadow-md mt-6">Connecting to room... (If room does not exist, host must create it.)</div>
+          <div className="p-6 bg-white rounded-2xl shadow-md mt-6">Menghubungkan ke room... (Jika room belum ada, host harus membuatnya.)</div>
         )}
 
         <footer className="mt-10 text-sm text-gray-500">
           <div className="border-t pt-4 flex justify-between">
             <div>© {new Date().getFullYear()} QuizLive — Built with ❤️</div>
-            <div>Made for classrooms • <button className="underline" onClick={()=>setShowSettings(true)}>Settings</button></div>
+            <div>Made for classrooms • <button className="underline" onClick={()=>setShowSettings(true)}>Pengaturan</button></div>
           </div>
         </footer>
       </div>
