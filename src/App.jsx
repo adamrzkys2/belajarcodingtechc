@@ -202,33 +202,75 @@ export default function App() {
     } catch (e) { console.error(e); }
   };
 
-  const nextQuestion = async () => {
-    if (!inited || !roomId || !roomData) return;
-    try {
-      const { ref, update } = await import("firebase/database");
-      const idx = roomData.currentIndex || 0;
-      const quiz = roomData.quiz || SAMPLE_QUIZ;
-      const q = quiz.questions[idx];
-      // score
-      const answers = roomData.answers || {};
-      const batch = {};
-      Object.entries(answers).forEach(([pid, choice]) => {
-        const correct = choice === q.answer;
-        if (correct) {
-          const cur = (roomData.players && roomData.players[pid] && roomData.players[pid].score) || 0;
-          batch[`players/${pid}/score`] = cur + 100;
-        }
-      });
-      const nextIdx = idx + 1;
-      const newState = nextIdx >= quiz.questions.length ? "finished" : "question";
-      batch.currentIndex = nextIdx;
-      batch.answers = {};
-      batch.state = newState;
-      const rRef = ref(fb.dbRef.current, `rooms/${roomId}`);
-      await update(rRef, batch);
-      setLocalAnswer(null);
-    } catch (e) { console.error(e); }
-  };
+const nextQuestion = async () => {
+  if (!inited || !roomId || !roomData) return;
+  try {
+    const { ref, update } = await import("firebase/database");
+
+    // current index (soal yang sedang diproses)
+    const idx = roomData.currentIndex || 0;
+    const quiz = roomData.quiz || SAMPLE_QUIZ;
+    const q = quiz.questions[idx];
+
+    if (!q) {
+      console.warn("nextQuestion: pertanyaan tidak ditemukan untuk index", idx);
+      return;
+    }
+
+    // current answers snapshot (may contain numbers or strings)
+    const answers = roomData.answers || {};
+    console.info("Scoring answers for question", idx, "correct:", q.answer, "answers:", answers);
+
+    // prepare batched updates
+    const updates = {};
+
+    // iterate answers and award points if correct
+    Object.entries(answers).forEach(([pid, rawChoice]) => {
+      // normalize choice to number (handles "1" vs 1)
+      const choice = typeof rawChoice === "number" ? rawChoice : Number(rawChoice);
+
+      // skip if NaN
+      if (Number.isNaN(choice)) {
+        console.warn("Skipping player", pid, "invalid choice:", rawChoice);
+        return;
+      }
+
+      const correct = choice === q.answer;
+      if (correct) {
+        // current score (defensive)
+        const current = (roomData.players && roomData.players[pid] && Number(roomData.players[pid].score)) || 0;
+        const newScore = current + 100; // you can change point value here
+        updates[`players/${pid}/score`] = newScore;
+        console.log(`Awarding 100 to ${pid} (was ${current} -> ${newScore})`);
+      } else {
+        // optional: you might log wrong answers if needed
+        // console.log(`Player ${pid} wrong (choice ${choice})`);
+      }
+    });
+
+    // increment index and reset answers
+    const nextIdx = idx + 1;
+    const newState = nextIdx >= quiz.questions.length ? "finished" : "question";
+
+    updates["currentIndex"] = nextIdx;
+    updates["answers"] = {};   // clear answers for next question
+    updates["state"] = newState;
+
+    const rRef = ref(fb.dbRef.current, `rooms/${roomId}`);
+    await update(rRef, updates);
+
+    // local cleanup
+    setLocalAnswer(null);
+
+    // optional: if finished, play end sound (you may already have this)
+    if (newState === "finished") {
+      try { playToneEnd(); } catch(e) {}
+    }
+  } catch (err) {
+    console.error("nextQuestion error", err);
+  }
+};
+
 
   /* ---------- Timer: restart only when question index or state changes ---------- */
   useEffect(() => {
